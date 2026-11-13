@@ -1,0 +1,14 @@
+inpriora
+Copyright 2026 Ant Group
+
+This product includes software developed by the Soda team @ Inria
+(TabICL, https://github.com/soda-inria/tabicl), licensed under the
+BSD 3-Clause License. See THIRD_PARTY_NOTICES.md.
+
+This product includes software developed by Prior Labs GmbH
+(TabPFN, https://github.com/PriorLabs/TabPFN), licensed under the
+Apache License 2.0. See THIRD_PARTY_NOTICES.md.
+
+TabPFN
+Copyright (c) 2026 Prior Labs GmbH
+Third-party attribution notices are provided in THIRD-PARTY-NOTICES.md.
