@@ -110,7 +110,7 @@ If you use Inpriora in your work, please cite the repository:
 ```bibtex
 @misc{inpriora2026,
   title        = {Inpriora: A Pretrained Tabular Foundation Model for Classification and Regression},
-  author       = {Liu, Yunpeng and Wu, Binqing and Liu, Wenkang and Qiu, Wanghui and
+  author       = {Liu, Yunpeng and Wu, Binqing and Qiu, Wanghui and Liu, Wenkang and
                   Cheng, Zijian and Zhang, Jingyuan and Zheng, Tianyi and Wang, Mengying and
                   Fu, Xing and Fu, Xinyi and Cheng, Yu and Wang, Weiqiang and Wang, Ningtao},
   year         = {2026},
