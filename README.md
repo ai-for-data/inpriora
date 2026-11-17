@@ -26,16 +26,13 @@ pip install "inpriora[triton] @ git+https://github.com/ai-for-data/inpriora.git"
 
 ## TabArena performance
 
-Results from a self-run, non-official evaluation on TabArena-v0.1
-(51 datasets, 816 splits) on 2026-11-12/13. Ranks are among model submissions.
+In TabArena's official evaluation, Inpriora is on the Pareto front for both
+Elo and improvability versus inference time. Higher Elo and lower improvability
+are better; inference time is the median per 1,000 samples across datasets.
 
-![TabArena-v0.1 full](docs/tabarena_performance.png)
+![TabArena Elo versus inference time](docs/elo_inference_pareto.svg)
 
-| Subset | Elo | Rank |
-|---|---:|---:|
-| Full | 1823.6 | 6/109 |
-| Classification | 1786.4 | 7/107 |
-| Regression | 2208.6 | 4/105 |
+![TabArena improvability versus inference time](docs/improvability_inference_pareto.svg)
 
 ## Quick start
 
