@@ -313,6 +313,84 @@ class InprioraClassifier(ClassifierMixin, BaseInprioraEstimator):
         exponent = np.exp(scaled)
         return exponent / exponent.sum(axis=-1, keepdims=True)
 
+    def _predict_member_outputs(self, X):
+        """Run each ensemble member and return its outputs and class ordering."""
+        X_numeric = self.X_encoder_.transform(X)
+        views, cached = self._prepare_views(X_numeric)
+        outputs = []
+        for norm_method, batch in views.items():
+            if cached:
+                ranks = batch[1] if len(batch) > 1 else None
+                outputs.append(
+                    self._cached_logits(
+                        batch[0],
+                        self.model_cache_[norm_method],
+                        ranks,
+                    )
+                )
+            else:
+                ranks = batch[2] if len(batch) > 2 else None
+                outputs.append(self._member_logits(batch[0], batch[1], ranks))
+        outputs = np.concatenate(outputs, axis=0)
+        class_shuffles = [
+            pattern
+            for group in self.ensemble_.class_shuffles_.values()
+            for pattern in group
+        ]
+        if not class_shuffles:
+            raise RuntimeError("The ensemble contains no members.")
+        return outputs, class_shuffles
+
+    def predict_logits(self, X, *, return_raw: bool = False) -> np.ndarray:
+        """Predict class-aligned logits before temperature scaling and softmax.
+
+        Parameters
+        ----------
+        X : array-like or DataFrame of shape (n_samples, n_features)
+            Samples to predict.
+        return_raw : bool, default=False
+            Return logits for each ensemble member instead of their mean.
+
+        Returns
+        -------
+        numpy.ndarray
+            Shape (n_samples, n_classes) by default, or
+            (n_estimators, n_samples, n_classes) if ``return_raw=True``.
+            Class columns follow ``classes_``. The returned values are not
+            temperature-scaled and do not depend on ``average_logits``.
+
+        Raises
+        ------
+        NotImplementedError
+            If the number of classes exceeds the model's native limit, since
+            hierarchical classification combines intermediate probabilities.
+
+        Notes
+        -----
+        When ``average_logits=True``, applying softmax with ``temperature`` to
+        the mean logits gives ``predict_proba``, apart from probability clipping
+        and floating-point rounding. When ``average_logits=False``, the model
+        averages member probabilities instead, so this relationship need not hold.
+        """
+        check_is_fitted(self)
+        if self.n_classes_ > self.native_classes_:
+            raise NotImplementedError(
+                "predict_logits is unavailable for hierarchical classification "
+                f"with more than {self.native_classes_} classes."
+            )
+        if isinstance(X, np.ndarray) and X.ndim == 1:
+            raise ValueError("X must be two-dimensional.")
+
+        with self._thread_context():
+            outputs, class_shuffles = self._predict_member_outputs(X)
+            aligned = [outputs[index][..., pattern] for index, pattern in enumerate(class_shuffles)]
+            if return_raw:
+                return np.stack(aligned, axis=0)
+            average = np.zeros_like(aligned[0], dtype=np.float64)
+            for output in aligned:
+                average += output
+            return average / len(aligned)
+
     def predict_proba(self, X) -> np.ndarray:
         """Predict class probabilities."""
         check_is_fitted(self)
@@ -320,34 +398,8 @@ class InprioraClassifier(ClassifierMixin, BaseInprioraEstimator):
             raise ValueError("X must be two-dimensional.")
 
         with self._thread_context():
-            X_numeric = self.X_encoder_.transform(X)
-            views, cached = self._prepare_views(X_numeric)
-            outputs = []
-            for norm_method, batch in views.items():
-                if cached:
-                    ranks = batch[1] if len(batch) > 1 else None
-                    outputs.append(
-                        self._cached_logits(
-                            batch[0],
-                            self.model_cache_[norm_method],
-                            ranks,
-                        )
-                    )
-                else:
-                    ranks = batch[2] if len(batch) > 2 else None
-                    outputs.append(
-                        self._member_logits(batch[0], batch[1], ranks)
-                    )
-            outputs = np.concatenate(outputs, axis=0)
-
-            class_shuffles = [
-                pattern
-                for group in self.ensemble_.class_shuffles_.values()
-                for pattern in group
-            ]
+            outputs, class_shuffles = self._predict_member_outputs(X)
             n_estimators = len(class_shuffles)
-            if n_estimators == 0:
-                raise RuntimeError("The ensemble contains no members.")
 
             if not self.average_logits:
                 outputs = [

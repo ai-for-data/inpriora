@@ -50,7 +50,18 @@ classifier.fit(X_train, y_train)
 
 probabilities = classifier.predict_proba(X_test)
 predictions = classifier.predict(X_test)
+logits = classifier.predict_logits(X_test)
+member_logits = classifier.predict_logits(X_test, return_raw=True)
 ```
+
+`predict_logits` returns class-aligned ensemble mean logits with shape
+`(n_samples, n_classes)`. Set `return_raw=True` to get per-member logits with
+shape `(n_estimators, n_samples, n_classes)`. These logits are not temperature
+scaled; when `average_logits=True`, applying softmax to `logits / temperature`
+reproduces `predict_proba` up to numerical precision. When
+`average_logits=False`, probabilities are averaged instead, so this relation
+does not generally hold. Logits are unavailable for hierarchical classification
+above the checkpoint's native class limit (10 classes for the released model).
 
 ```python
 from sklearn.datasets import load_diabetes
